@@ -1,6 +1,6 @@
 const express = require("express");
 const { connect } = require("puppeteer-real-browser");
-// const StealthPlugin = require("puppeteer-extra-plugin-stealth")
+const StealthPlugin = require("puppeteer-extra-plugin-stealth")
 
 const app = express();
 
@@ -20,10 +20,10 @@ app.get("/start", async (req, res) => {
                 "--single-process",
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
-                "--disable-gpu",
-                "--no-zygote",
-                "--disable-dev-shm-usage"
+                "--no-zygote"
             ],
+            disableXvfb: true,
+            plugins: [StealthPlugin()],
             customConfig: {
                 chromePath: "./google-chrome-stable" // make sure this path is correct
             },

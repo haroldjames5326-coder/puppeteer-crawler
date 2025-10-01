@@ -1,6 +1,6 @@
 const express = require("express");
-const { connect } = require("puppeteer-real-browser");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const puppeteer = require("puppeteer");
+// const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 const app = express();
 
@@ -10,15 +10,27 @@ const app = express();
         console.log(`Server running on port ${port}`);
     });
 
+    let started = false
+
+    await new Promise((resolve,reject)=>{
+        app.get("/start", (req,res)=>{
+            resolve()
+            if (started) {
+                res.send("Already started")
+            } else {
+                started = true
+                res.send("Project started Successfully!")
+            }
+        })
+    })
+
     console.log("✅ Start");
-    const { browser } = await connect({
+    const browser = await puppeteer.launch({
         headless: false,
         args: ["--single-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--no-zygote", "--disable-dev-shm-usage"],
-        plugins: [StealthPlugin()],
+        // plugins: [StealthPlugin()],
         disableXvfb: true,
-        customConfig: {
-            chromePath: "./google-chrome-stable", // path from your code
-        },
+        // executablePath: "./google-chrome-stable", // path from your code
     });
     console.log("✅ Browser Started");
 

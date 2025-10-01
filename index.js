@@ -1,61 +1,73 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
-// const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 const app = express();
 
-(async () => {
-    const port = process.env.PORT || 8080;
-    app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
+let started = false;
+let browser, page;
 
-    let started = false
+// Start route (launch Puppeteer only once)
+app.get("/start", async (req, res) => {
+    if (started) {
+        return res.send("Already started");
+    }
 
-    await new Promise((resolve,reject)=>{
-        app.get("/start", (req,res)=>{
-            resolve()
-            if (started) {
-                res.send("Already started")
-            } else {
-                started = true
-                res.send("Project started Successfully!")
-            }
-        })
-    })
+    try {
+        browser = await puppeteer.launch({
+            headless: true,
+            args: [
+                "--single-process",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-gpu",
+                "--no-zygote",
+                "--disable-dev-shm-usage"
+            ],
+            executablePath: "./google-chrome-stable", // make sure this path is correct
+            timeout: 60000,
+        });
 
-    console.log("✅ Start");
-    const browser = await puppeteer.launch({
-        headless: false,
-        args: ["--single-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--no-zygote", "--disable-dev-shm-usage"],
-        // plugins: [StealthPlugin()],
-        disableXvfb: true,
-        executablePath: "./google-chrome-stable", // path from your code
-        timeout: 60000,
-    });
-    console.log("✅ Browser Started");
+        page = await browser.newPage();
+        await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 60000 });
 
-    const page = await browser.newPage();
-    console.log("✅ New page started");
-    await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 60000 });
-    console.log("✅ Goto finished");
+        started = true;
+        console.log("✅ Browser started and page loaded");
+        res.send("Project started successfully!");
+    } catch (err) {
+        console.error("❌ Failed to start:", err);
+        res.status(500).send("Failed to start: " + err.message);
+    }
+});
 
-    app.get("/", async (req, res) => {
-        try {
-            console.log("✅ Screenshot request");
-            const screenshotBuffer = await page.screenshot({ type: "png", fullPage: true });
-            console.log("✅ Screenshot finished");
+// Screenshot route
+app.get("/", async (req, res) => {
+    if (!page) {
+        return res.status(400).send("Browser not started. Call /start first.");
+    }
 
-            // ✅ Make sure headers are set before sending
-            res.set("Content-Type", "image/png");
-            res.set("Content-Length", screenshotBuffer.length);
+    try {
+        console.log("✅ Screenshot request");
+        const screenshotBuffer = await page.screenshot({ type: "png", fullPage: true });
 
-            // ✅ Use res.end so Express doesn’t auto-guess type
-            res.end(screenshotBuffer);
-        } catch (err) {
-            const state = await page.evaluate(() => document.readyState); // "loading", "interactive", or "complete"
+        res.set("Content-Type", "image/png");
+        res.set("Content-Length", screenshotBuffer.length);
+        res.end(screenshotBuffer);
+        console.log("✅ Screenshot sent");
+    } catch (err) {
+        console.error("❌ Screenshot failed:", err);
+        res.status(500).send("Error: " + err.message);
+    }
+});
 
-            res.status(500).send(`Error: ${err.message}. State: ${state}`);
-        }
-    });
-})();
+// Graceful shutdown
+process.on("SIGINT", async () => {
+    console.log("\nShutting down...");
+    if (browser) await browser.close();
+    process.exit(0);
+});
+
+// Start server
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
+    console.log(`🚀 Server running on http://localhost:${port}`);
+});

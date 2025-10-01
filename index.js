@@ -30,7 +30,7 @@ const app = express();
         args: ["--single-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--no-zygote", "--disable-dev-shm-usage"],
         // plugins: [StealthPlugin()],
         disableXvfb: true,
-        // executablePath: "./google-chrome-stable", // path from your code
+        executablePath: "./google-chrome-stable", // path from your code
     });
     console.log("✅ Browser Started");
 

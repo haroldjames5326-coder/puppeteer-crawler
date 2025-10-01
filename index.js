@@ -22,7 +22,6 @@ app.get("/start", async (req, res) => {
                 "--disable-setuid-sandbox",
                 "--no-zygote"
             ],
-            disableXvfb: true,
             plugins: [StealthPlugin()],
             customConfig: {
                 chromePath: "./google-chrome-stable" // make sure this path is correct

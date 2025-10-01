@@ -17,6 +17,7 @@ apt-get install -y \
     fonts-kacst \
     fonts-freefont-ttf \
     libxss1 \
+    xvfb \
     --no-install-recommends
 
 # --- 2. Install Browser Based on Architecture ---

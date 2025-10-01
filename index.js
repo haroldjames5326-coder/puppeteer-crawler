@@ -5,11 +5,17 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const app = express();
 
 (async () => {
+    const port = process.env.PORT || 8080;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+
     console.log("✅ Start");
     const { browser } = await connect({
         headless: false,
         args: ["--single-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--no-zygote", "--disable-dev-shm-usage"],
         plugins: [StealthPlugin()],
+        disableXvfb: true,
         customConfig: {
             chromePath: "./google-chrome-stable", // path from your code
         },
@@ -38,10 +44,5 @@ const app = express();
 
             res.status(500).send(`Error: ${err.message}. State: ${state}`);
         }
-    });
-
-    const port = process.env.PORT || 8080;
-    app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
     });
 })();

@@ -1,106 +1,39 @@
-const express = require('express');
+const express = require("express");
+const { connect } = require("puppeteer-real-browser");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+
 const app = express();
-// Import Puppeteer for browser automation
-const puppeteer = require('puppeteer');
-const bodyParser = require('body-parser');
-const base64 = require('base64-js');
 
-// Set EJS as the template engine
-app.set('view engine', 'ejs');
-// Set the directory for views
-app.set('views', __dirname + '/views');
-
-// Use body-parser to parse form data
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Handle GET requests and render the initial page
-app.get('/', (req, res) => {
-    res.render('success', {
-        url: 'https://news.ycombinator.com',
-        screenshot_base64: '',
-        links: [],
-        page_title: null
+(async () => {
+    const { browser } = await connect({
+        headless: false,
+        args: ["--single-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--no-zygote", "--disable-dev-shm-usage"],
+        plugins: [StealthPlugin()],
+        customConfig: {
+            chromePath: "./google-chrome-stable", // path from your code
+        },
     });
-});
 
-// Handle POST requests to take a screenshot
-app.post('/', async (req, res) => {
-    // Get the URL from the form, default to Hacker News
-    let url = req.body.url || 'https://news.ycombinator.com';
-    // Add 'https://' if the URL doesn't start with 'http'
-    if (!url.startsWith('http')) {
-        url = 'https://' + url;
-    }
+    const page = await browser.newPage();
+    await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 60000 });
 
-    let browser;
-    try {
-        // Launch a headless Chrome browser with specific arguments
-        browser = await puppeteer.launch({
-            headless: true, // Run the browser in headless mode
-            args: [
-                '--single-process',
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--no-zygote',
-                '--disable-dev-shm-usage',
-            ],
-            // Use the stable version of Chrome
-            // use specific path to the Chrome executable, because the default path may not work.
-            // we have to download the Chrome executable and put it in the project directory.
-            executablePath: './google-chrome-stable',
-            timeout: 60000,
-        });
-        // Create a new browser page
-        const page = await browser.newPage();
-        // Navigate to the specified URL and wait until the network is idle
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        page.setDefaultNavigationTimeout(0);
-        // Take a screenshot of the page
-        const screenshot = await page.screenshot();
-        // Get the page title
-        const page_title = await page.title();
+    app.get("/", async (req, res) => {
+        try {
+            const screenshotBuffer = await page.screenshot({ type: "png", fullPage: true });
 
-        // Extract all <a> tags' links and text content
-        const links_and_texts = await page.evaluate(() => {
-            const anchors = document.querySelectorAll('a');
-            return Array.from(anchors).map(anchor => {
-                const text = anchor.textContent.replace(/<[^>]*>/g, '').trim();
-                return {
-                    href: anchor.href,
-                    text: text
-                };
-            });
-        });
+            // ✅ Make sure headers are set before sending
+            res.set("Content-Type", "image/png");
+            res.set("Content-Length", screenshotBuffer.length);
 
-        // Convert the screenshot to a base64 string
-        const screenshot_base64 = base64.fromByteArray(screenshot);
-
-        // Render the success page with relevant data
-        res.render('success', {
-            url,
-            page_title,
-            screenshot_base64,
-            links: links_and_texts
-        });
-    } catch (e) {
-        // Close the browser if an error occurs
-        if (browser) {
-            await browser.close();
+            // ✅ Use res.end so Express doesn’t auto-guess type
+            res.end(screenshotBuffer);
+        } catch (err) {
+            res.status(500).send("Error: " + err.message);
         }
-        // Render the error page with the error message
-        res.render('error', { error_message: e.message });
-    } finally {
-        // Ensure the browser is closed after all operations
-        if (browser) {
-            await browser.close();
-        }
-    }
-});
+    });
 
-// Set the port, use environment variable PORT or default to 8080
-const port = process.env.PORT || 8080;
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+    const port = process.env.PORT || 8080;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+})();

@@ -31,6 +31,7 @@ const app = express();
         // plugins: [StealthPlugin()],
         disableXvfb: true,
         executablePath: "./google-chrome-stable", // path from your code
+        timeout: 60000,
     });
     console.log("✅ Browser Started");
 

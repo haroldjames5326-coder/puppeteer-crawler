@@ -1,5 +1,6 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
+const { connect } = require("puppeteer-real-browser");
+// const StealthPlugin = require("puppeteer-extra-plugin-stealth")
 
 const app = express();
 
@@ -13,7 +14,7 @@ app.get("/start", async (req, res) => {
     }
 
     try {
-        browser = await puppeteer.launch({
+        browser = (await connect({
             headless: true,
             args: [
                 "--single-process",
@@ -23,9 +24,11 @@ app.get("/start", async (req, res) => {
                 "--no-zygote",
                 "--disable-dev-shm-usage"
             ],
-            executablePath: "./google-chrome-stable", // make sure this path is correct
+            customConfig: {
+                chromePath: "./google-chrome-stable" // make sure this path is correct
+            },
             timeout: 60000,
-        });
+        })).browser;
 
         page = await browser.newPage();
         await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 60000 });

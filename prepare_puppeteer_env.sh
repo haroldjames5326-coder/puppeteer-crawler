@@ -5,7 +5,7 @@ set -e
 
 # --- 1. Common Setup ---
 # Install Puppeteer without downloading its bundled Chromium
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install puppeteer
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Update apt list and install common fonts and libraries required by both browsers
 echo "INFO: Installing common fonts and libraries..."

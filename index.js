@@ -15,14 +15,12 @@ app.get("/start", async (req, res) => {
 
     try {
         browser = (await connect({
-            headless: true,
+            headless: "new",
             args: [
-                "--single-process",
                 "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--no-zygote"
             ],
             plugins: [StealthPlugin()],
+            disableXvfb: false,
             customConfig: {
                 chromePath: "./google-chrome-stable" // make sure this path is correct
             },
